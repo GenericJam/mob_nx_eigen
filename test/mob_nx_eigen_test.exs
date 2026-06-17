@@ -11,9 +11,12 @@ defmodule MobNxEigenTest do
   describe "plugin manifest" do
     test "declares the cpp_archive NIF with the nx_eigen_nif_init symbol" do
       [nif] = manifest().nifs
-      assert nif.module == :nx_eigen_nif
+      # module :nx_eigen (not :nx_eigen_nif) so the driver-tab key + derived
+      # init symbol (<module>_nif_init) match NxEigen's load_nif + the archive.
+      assert nif.module == :nx_eigen
       assert nif.lang == :cpp_archive
       assert nif.nm_symbol == "nx_eigen_nif_init"
+      assert nif.nm_symbol == "#{nif.module}_nif_init"
     end
 
     test "references NxEigen's NIF from the dep and ships the FFT bridge itself" do

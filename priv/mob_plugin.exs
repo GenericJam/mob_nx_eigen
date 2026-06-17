@@ -19,7 +19,12 @@
   # FINE_INIT symbol to nx_eigen_nif_init regardless of the NAME token.
   nifs: [
     %{
-      module: :nx_eigen_nif,
+      # MUST be :nx_eigen (not :nx_eigen_nif): the driver table derives the init
+      # symbol as <module>_nif_init, and NxEigen's `load_nif` loads "libnx_eigen"
+      # → static-NIF key "nx_eigen". So module :nx_eigen yields key "nx_eigen" +
+      # symbol nx_eigen_nif_init, matching the archive (LIBNAME=nx_eigen) and
+      # superseding mob_dev's guarded core :nx_eigen driver-tab entry.
+      module: :nx_eigen,
       lang: :cpp_archive,
       sources: [
         {:dep, :nx_eigen, "c_src/nx_eigen_nif.cpp"},
