@@ -12,12 +12,26 @@ NxEigen is the fallback that always works.
 ## How it's built
 
 The NIF is a C++ `:cpp_archive` plugin contribution: mob_dev's
-`MobDev.Plugin.CppArchive` cross-compiles it to `libnx_eigen_nif.a` per target
-ABI and static-links it into the app's single signed native binary (required —
+`MobDev.Plugin.CppArchive` cross-compiles it to `libnx_eigen.a` per target ABI
+and static-links it into the app's single signed native binary (required —
 Android `RTLD_LOCAL` hides the BEAM's `enif_*` symbols from a separately-loaded
-`.so`, and iOS forbids `dlopen`). The plugin references NxEigen's own NIF source
-+ Eigen/Fine headers straight from its deps (`{:dep, …}` tokens) rather than
-vendoring copies; it ships only the Eigen-FFT bridge (`c_src/`).
+`.so`, and iOS forbids `dlopen`). It references NxEigen's own NIF source + Fine
+headers straight from its deps (`{:dep, …}` tokens) and ships the Eigen-FFT
+bridge itself (`c_src/`).
+
+**Eigen headers** are fetched at compile time by the bundled `eigen_headers` Mix
+compiler into `eigen-3.4.0/` (gitignored) — the published `nx_eigen` hex package
+downloads Eigen in its own Makefile and ships a precompiled `.so`, so a clean
+`mix deps.get` has no Eigen for the source cross-compile to reference. Set
+`EIGEN_DIR` to a local Eigen 3.4.0 checkout to skip the download.
+
+> **Android ABI:** `cpp_archive` targets arm64/arm32 (+ iOS), **not** the
+> `x86_64` Android emulator — build/deploy to an arm device (or drop `x86_64`
+> from your app's `abiFilters` + build.zig). Building x86_64 with this plugin
+> fails the link with an unresolved `nx_eigen_nif_init`.
+
+Requires a mob_dev with `cpp_archive` + the `ANDROID_HOME`-aware NDK resolution
+(≥ the release carrying MOB-89).
 
 ## Use
 

@@ -32,7 +32,10 @@
       ],
       includes: [
         {:dep, :nx_eigen, "c_src"},
-        {:dep, :nx_eigen, "eigen-3.4.0"},
+        # Eigen headers are provisioned into THIS plugin's own tree by the
+        # eigen_headers Mix compiler (the nx_eigen hex package doesn't ship them
+        # — MOB-90), so this is a plugin-relative include, not a {:dep, …} token.
+        "eigen-3.4.0",
         {:dep, :fine, "c_include"}
       ],
       cxxflags: [

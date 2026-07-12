@@ -25,10 +25,17 @@ defmodule MobNxEigenTest do
       assert "c_src/nx_eigen_fft_eigen.cpp" in nif.sources
     end
 
-    test "includes the Eigen + Fine headers via dep tokens" do
+    test "includes the Fine headers via a dep token" do
       [nif] = manifest().nifs
-      assert {:dep, :nx_eigen, "eigen-3.4.0"} in nif.includes
       assert {:dep, :fine, "c_include"} in nif.includes
+    end
+
+    test "includes Eigen as a plugin-relative path (provisioned by the eigen_headers compiler)" do
+      # NOT {:dep, :nx_eigen, "eigen-3.4.0"} — the published nx_eigen package
+      # doesn't ship Eigen (MOB-90); we provision it into our own tree.
+      [nif] = manifest().nifs
+      assert "eigen-3.4.0" in nif.includes
+      refute {:dep, :nx_eigen, "eigen-3.4.0"} in nif.includes
     end
 
     test "forces the LIBNAME so FINE_INIT emits nx_eigen_nif_init" do

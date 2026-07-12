@@ -6,3 +6,6 @@ erl_crash.dump
 *.ez
 mob_nx_eigen-*.tar
 /tmp/
+
+# Eigen headers fetched at compile time by the eigen_headers compiler (MOB-90)
+/eigen-3.4.0/

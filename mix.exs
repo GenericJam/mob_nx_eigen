@@ -10,6 +10,11 @@ defmodule MobNxEigen.MixProject do
       version: @version,
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
+      # Provision Eigen headers for the cpp_archive build (the published nx_eigen
+      # package doesn't ship them — MOB-90). Runs AFTER the built-in compilers so
+      # Elixir has compiled the compiler task itself first; Eigen is only needed
+      # later, at the consuming app's native build, so ordering is fine.
+      compilers: Mix.compilers() ++ [:eigen_headers],
       deps: deps(),
       description: description(),
       package: package(),
