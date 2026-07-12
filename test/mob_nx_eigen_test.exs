@@ -51,4 +51,34 @@ defmodule MobNxEigenTest do
   test "the vendored FFT bridge source exists" do
     assert File.exists?(Path.join([__DIR__, "..", "c_src", "nx_eigen_fft_eigen.cpp"]))
   end
+
+  # The tests above only eval our own manifest data — they pass against ANY
+  # mob_dev, even one that has no cpp_archive build path. These pin the thing
+  # MOB-42 exposed: the *resolved* mob_dev must actually ship the mechanism the
+  # manifest declares AND accept this manifest. cpp_archive landed in mob_dev
+  # 0.6.10, so this fails on the pre-0.6.10 dep the plugin used to lock.
+  describe "resolved mob_dev provides the cpp_archive build path (MOB-42)" do
+    @plugin_dir Path.expand(Path.join(__DIR__, ".."))
+
+    test "the pinned mob_dev ships MobDev.Plugin.CppArchive" do
+      assert Code.ensure_loaded?(MobDev.Plugin.CppArchive),
+             "the resolved mob_dev has no CppArchive — the mob_dev floor is too low (needs >= 0.6.10)"
+    end
+
+    test "the pinned mob_dev's validator accepts our cpp_archive NIF" do
+      # Runs the current mob_dev's cpp_archive checks (module/sources/nm_symbol,
+      # nm_symbol == <module>_nif_init) against our actual manifest.
+      assert {:ok, _} = MobDev.Plugin.Manifest.validate(manifest())
+    end
+
+    test "mob_dev's static_archives gatherer resolves our manifest into a build spec" do
+      [spec] = MobDev.Plugin.Merge.static_archives([{@plugin_dir, manifest()}])
+      assert spec.module == :nx_eigen
+      assert spec.nm_symbol == "nx_eigen_nif_init"
+      assert spec.plugin == :mob_nx_eigen
+      # a plugin-relative source is resolved to absolute; a {:dep, …} token passes through
+      assert Path.join(@plugin_dir, "c_src/nx_eigen_fft_eigen.cpp") in spec.sources
+      assert {:dep, :nx_eigen, "c_src/nx_eigen_nif.cpp"} in spec.sources
+    end
+  end
 end

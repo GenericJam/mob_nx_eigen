@@ -24,13 +24,19 @@ defmodule MobNxEigen.MixProject do
 
   defp deps do
     [
+      {:ex_ast, "~> 0.12", only: [:dev, :test], runtime: false},
+      {:reach, "~> 2.7", only: [:dev, :test], runtime: false},
+      {:recon, "~> 2.5", only: [:dev, :test]},
       # The Nx backend this plugin bundles for on-device CPU inference.
       {:nx, "~> 0.10"},
       {:nx_eigen, "~> 0.1"},
       # mob (host) — the plugin manifest targets this version. Dev/test only:
       # the host app supplies mob at build time; the plugin doesn't ship it.
       {:mob, "~> 0.7", only: [:dev, :test], runtime: false},
-      {:mob_dev, "~> 0.6", only: [:dev, :test], runtime: false},
+      # cpp_archive plugin build (MobDev.Plugin.CppArchive / lang: :cpp_archive)
+      # this plugin relies on landed in mob_dev 0.6.10 — floor it there so it can
+      # never resolve to a version without the mechanism (MOB-42).
+      {:mob_dev, "~> 0.6.10", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:ex_slop, "~> 0.4", only: [:dev, :test], runtime: false}
     ]
