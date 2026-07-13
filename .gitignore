@@ -9,3 +9,6 @@ mob_nx_eigen-*.tar
 
 # Eigen headers fetched at compile time by the eigen_headers compiler (MOB-90)
 /eigen-3.4.0/
+
+# Plugin signature — regenerated in CI at release from MOB_PLUGIN_SIGN_KEY
+/priv/mob_plugin.sig
