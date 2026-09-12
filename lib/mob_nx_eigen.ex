@@ -19,22 +19,54 @@ defmodule MobNxEigen do
   @doc """
   Make NxEigen the global Nx backend. Returns the chosen backend module.
 
-  Falls back to `Nx.BinaryBackend` (pure Elixir) if `:nx_eigen` can't start —
-  so an app on a build that hasn't cross-compiled the NIF yet still runs, just
-  slower.
+  Falls back to `Nx.BinaryBackend` (pure Elixir) if the NxEigen NIF didn't
+  load — so an app on a build that hasn't cross-compiled the NIF yet still
+  runs, just slower.
   """
   @spec configure() :: module()
   def configure do
-    case Application.ensure_all_started(:nx_eigen) do
-      {:ok, _} ->
-        Nx.global_default_backend(NxEigen.Backend)
-        Logger.info("Nx backend: NxEigen (Eigen CPU)")
-        NxEigen.Backend
+    # `ensure_all_started(:nx_eigen)` always succeeds — the app has no
+    # `mod:` entry, so starting it is a no-op that never touches the NIF.
+    # Kept for symmetry with a hypothetical future application module, but
+    # it can NOT observe NIF-load failure. That's why we probe directly.
+    # See MOB-82.
+    _ = Application.ensure_all_started(:nx_eigen)
 
-      {:error, reason} ->
-        Logger.warning("NxEigen failed to start: #{inspect(reason)}; using Nx.BinaryBackend")
-        Nx.global_default_backend(Nx.BinaryBackend)
-        Nx.BinaryBackend
+    if nif_loaded?() do
+      Nx.global_default_backend(NxEigen.Backend)
+      Logger.info("Nx backend: NxEigen (Eigen CPU)")
+      NxEigen.Backend
+    else
+      Logger.warning("NxEigen NIF failed to load; using Nx.BinaryBackend")
+      Nx.global_default_backend(Nx.BinaryBackend)
+      Nx.BinaryBackend
     end
+  end
+
+  @doc """
+  True when the NxEigen NIF is actually loaded and callable in this
+  runtime.
+
+  Probes by constructing a trivial 1-element `{:s, 32}` tensor via
+  `NxEigen.NIF.constant/3` — the smallest self-contained NIF path. If the
+  archive isn't linked (host builds without the cross-compiled `.a`, or
+  release builds where the plugin was stripped), the probe raises and we
+  return `false`. Public so callers can gate optional Eigen-specific fast
+  paths without a `try/rescue` boilerplate at each site.
+
+  This exists because `Application.ensure_all_started(:nx_eigen)` can't
+  see NIF-load failure — nx_eigen's OTP application has no `mod:` entry,
+  so `ensure_all_started` returns `{:ok, _}` regardless. See MOB-82.
+  """
+  @spec nif_loaded?() :: boolean()
+  def nif_loaded? do
+    _ = NxEigen.NIF.constant({:s, 32}, {1}, 0)
+    true
+  rescue
+    # `@on_load` failure discards the module — calls come back as
+    # UndefinedFunctionError on this VM. On the older stub-based path
+    # the same call raises ErlangError with `original: :nif_not_loaded`.
+    UndefinedFunctionError -> false
+    ErlangError -> false
   end
 end
