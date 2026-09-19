@@ -24,9 +24,15 @@ defmodule MobNxEigenConfigureTest do
     # `true` (or removed and the code just set NxEigen.Backend
     # unconditionally), this direct probe still reports `:not_loaded` on a
     # host without the archive, and the test would catch the regression.
+    #
+    # Uses `from_binary/3` (base primitive; no resource-in) rather than
+    # `constant/3` — nx_eigen 0.1.1's constant/3 requires a scalar-tensor
+    # resource ref for its value arg, and the old integer-`0` call raises
+    # ArgumentError on a loaded NIF, making the ground-truth probe report
+    # :not_loaded even where it should be :loaded.
     probe_state =
       try do
-        _ = NxEigen.NIF.constant({:s, 32}, {1}, 0)
+        _ = NxEigen.NIF.from_binary(<<0, 0, 0, 0>>, {:s, 32}, {1})
         :loaded
       rescue
         _ -> :not_loaded
@@ -71,7 +77,7 @@ defmodule MobNxEigenConfigureTest do
     # probe of the same NIF call, the module's probe is lying.
     ground_truth =
       try do
-        _ = NxEigen.NIF.constant({:s, 32}, {1}, 0)
+        _ = NxEigen.NIF.from_binary(<<0, 0, 0, 0>>, {:s, 32}, {1})
         true
       rescue
         _ -> false

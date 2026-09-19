@@ -47,26 +47,38 @@ defmodule MobNxEigen do
   True when the NxEigen NIF is actually loaded and callable in this
   runtime.
 
-  Probes by constructing a trivial 1-element `{:s, 32}` tensor via
-  `NxEigen.NIF.constant/3` — the smallest self-contained NIF path. If the
-  archive isn't linked (host builds without the cross-compiled `.a`, or
-  release builds where the plugin was stripped), the probe raises and we
-  return `false`. Public so callers can gate optional Eigen-specific fast
-  paths without a `try/rescue` boilerplate at each site.
+  Probes by constructing a 1-element `{:s, 32}` tensor via
+  `NxEigen.NIF.from_binary/3` — the smallest self-contained NIF path
+  that doesn't need an existing resource to hand in. If the archive
+  isn't linked (host builds without the cross-compiled `.a`, or release
+  builds where the plugin was stripped), the probe raises and we return
+  `false`. Public so callers can gate optional Eigen-specific fast paths
+  without a `try/rescue` boilerplate at each site.
 
   This exists because `Application.ensure_all_started(:nx_eigen)` can't
   see NIF-load failure — nx_eigen's OTP application has no `mod:` entry,
   so `ensure_all_started` returns `{:ok, _}` regardless. See MOB-82.
+
+  Historical note: the probe originally called `NxEigen.NIF.constant/3`
+  with an integer `0` as the value arg. nx_eigen 0.1.1's `constant/3`
+  changed its third arg to a NIF-resource scalar tensor state (built via
+  `from_binary`); passing an integer now raises `ArgumentError` from
+  Fine's decoder, which the old rescue didn't catch. from_binary is the
+  base primitive constant/eye/iota all build on top of, so it's the
+  right probe.
   """
   @spec nif_loaded?() :: boolean()
   def nif_loaded? do
-    _ = NxEigen.NIF.constant({:s, 32}, {1}, 0)
+    _ = NxEigen.NIF.from_binary(<<0, 0, 0, 0>>, {:s, 32}, {1})
     true
   rescue
     # `@on_load` failure discards the module — calls come back as
     # UndefinedFunctionError on this VM. On the older stub-based path
     # the same call raises ErlangError with `original: :nif_not_loaded`.
+    # ArgumentError catches Fine's decode/encode failures if the NIF
+    # signature drifts out from under this probe again.
     UndefinedFunctionError -> false
     ErlangError -> false
+    ArgumentError -> false
   end
 end
