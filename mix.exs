@@ -43,7 +43,11 @@ defmodule MobNxEigen.MixProject do
       # never resolve to a version without the mechanism (MOB-42).
       {:mob_dev, "~> 0.6.10", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:ex_slop, "~> 0.4", only: [:dev, :test], runtime: false}
+      {:ex_slop, "~> 0.4", only: [:dev, :test], runtime: false},
+      # ex_doc provides the `mix docs` task that `mix hex.publish` invokes
+      # to generate + upload documentation alongside the package tarball.
+      # Without it publish aborts with "docs task is unavailable".
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false}
     ]
   end
 
