@@ -36,6 +36,14 @@ jobs:
       # priv/mob_plugin.sig from the CURRENT manifest before publish, so the
       # published artifact's signature can never drift stale.
       MOB_PLUGIN_SIGN_KEY: ${{ secrets.MOB_PLUGIN_SIGN_KEY }}
+      # nx_eigen's default host-build path compiles its NIF against FFTW3,
+      # which isn't installed on the ubuntu-latest runner. mob_nx_eigen's
+      # plugin build (via MobDev.Plugin.CppArchive) ships its own Eigen-FFT
+      # bridge for the consuming device app anyway (c_src/nx_eigen_fft_eigen.cpp),
+      # so the host-side NIF compile doesn't need FFTW. `NX_EIGEN_FFT_LIB=none`
+      # tells upstream nx_eigen's Makefile to compile the stub FFT
+      # (c_src/nx_eigen_fft_none.cpp) instead of pulling in FFTW.
+      NX_EIGEN_FFT_LIB: none
     steps:
       - uses: actions/checkout@v4
         with:
@@ -125,6 +133,20 @@ jobs:
         with:
           elixir-version: '1.19'
           otp-version: '28'
+
+      - name: Pre-compile Fine so nx_eigen's Makefile finds its headers
+        if: env.HEX_API_KEY != ''
+        # nx_eigen 0.1.1's `make_env` reads FINE_INCLUDE from `Fine.include_dir/0`
+        # if the module is loaded, else falls back to a `File.cwd!() + deps/fine/c_include`
+        # heuristic that resolves wrong when Mix is inside `deps/nx_eigen/` at
+        # nx_eigen compile time. Pre-compiling Fine loads it first, so nx_eigen's
+        # compile picks up the correct absolute path from Fine's compile-time
+        # baked-in `@include_dir`.
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get
+          mix deps.compile fine
 
       - name: Check if version is already on Hex
         if: env.HEX_API_KEY != ''
