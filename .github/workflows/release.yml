@@ -134,19 +134,31 @@ jobs:
           elixir-version: '1.19'
           otp-version: '28'
 
-      - name: Pre-compile Fine so nx_eigen's Makefile finds its headers
+      - name: Fetch deps + symlink Fine into nx_eigen's fallback path
         if: env.HEX_API_KEY != ''
         # nx_eigen 0.1.1's `make_env` reads FINE_INCLUDE from `Fine.include_dir/0`
-        # if the module is loaded, else falls back to a `File.cwd!() + deps/fine/c_include`
-        # heuristic that resolves wrong when Mix is inside `deps/nx_eigen/` at
-        # nx_eigen compile time. Pre-compiling Fine loads it first, so nx_eigen's
-        # compile picks up the correct absolute path from Fine's compile-time
-        # baked-in `@include_dir`.
+        # if the module is loaded, else falls back to
+        #   Path.join([File.cwd!(), "deps", "fine", "c_include"])
+        # which resolves to `deps/nx_eigen/deps/fine/c_include` when Mix is inside
+        # nx_eigen at compile time — but Mix hoists Fine to the top-level deps/,
+        # so the fallback path is wrong and the fine.hpp include fails.
+        #
+        # `Code.ensure_loaded?(Fine)` in that make_env should have gone the good
+        # path, but doesn't fire early enough during a fresh `mix deps.compile`
+        # in CI (observed 2x on this workflow). The pragmatic workaround: put
+        # Fine's headers where the fallback expects them via a symlink. The
+        # nx_eigen dir gets recreated on `mix deps.clean` so this doesn't stick
+        # across a fresh checkout, but that's fine — the workflow's checkout is
+        # always fresh anyway.
         run: |
           mix local.hex --force
           mix local.rebar --force
           mix deps.get
-          mix deps.compile fine
+          if [ -d deps/fine/c_include ] && [ ! -e deps/nx_eigen/deps/fine ]; then
+            mkdir -p deps/nx_eigen/deps
+            ln -s ../../fine deps/nx_eigen/deps/fine
+            echo "symlinked deps/nx_eigen/deps/fine -> ../../fine"
+          fi
 
       - name: Check if version is already on Hex
         if: env.HEX_API_KEY != ''
