@@ -2,6 +2,8 @@ defmodule Mix.Tasks.Compile.EigenHeadersTest do
   # async: false — mutates cwd + EIGEN_DIR.
   use ExUnit.Case, async: false
 
+  alias Mix.Tasks.Compile.EigenHeaders
+
   @eigen_dir "eigen-3.4.0"
 
   setup do
@@ -27,11 +29,11 @@ defmodule Mix.Tasks.Compile.EigenHeadersTest do
 
     File.cd!(tmp, fn ->
       # First run wires eigen-3.4.0/ to the local copy (no network).
-      assert {:ok, _} = Mix.Tasks.Compile.EigenHeaders.run([])
+      assert {:ok, _} = EigenHeaders.run([])
       assert File.dir?(Path.join([tmp, @eigen_dir, "Eigen"]))
 
       # Second run is a no-op (already provisioned).
-      assert {:noop, _} = Mix.Tasks.Compile.EigenHeaders.run([])
+      assert {:noop, _} = EigenHeaders.run([])
     end)
   end
 
@@ -42,7 +44,7 @@ defmodule Mix.Tasks.Compile.EigenHeadersTest do
     File.mkdir_p!(Path.join([tmp, @eigen_dir, "Eigen"]))
 
     File.cd!(tmp, fn ->
-      assert {:noop, _} = Mix.Tasks.Compile.EigenHeaders.run([])
+      assert {:noop, _} = EigenHeaders.run([])
     end)
   end
 end

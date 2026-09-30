@@ -1,7 +1,7 @@
 defmodule MobNxEigen.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.1.1"
   @source_url "https://github.com/GenericJam/mob_nx_eigen"
 
   def project do
@@ -39,9 +39,9 @@ defmodule MobNxEigen.MixProject do
       # the host app supplies mob at build time; the plugin doesn't ship it.
       {:mob, "~> 0.7", only: [:dev, :test], runtime: false},
       # cpp_archive plugin build (MobDev.Plugin.CppArchive / lang: :cpp_archive)
-      # this plugin relies on landed in mob_dev 0.6.10 — floor it there so it can
-      # never resolve to a version without the mechanism (MOB-42).
-      {:mob_dev, "~> 0.6.10", only: [:dev, :test], runtime: false},
+      # landed in mob_dev 0.6.10 (MOB-42); release CI signs the manifest with
+      # this mob_dev, and envelope v2 signing needs 0.7.2 (MOB-287).
+      {:mob_dev, "~> 0.7.2", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:ex_slop, "~> 0.4", only: [:dev, :test], runtime: false},
       # ex_doc provides the `mix docs` task that `mix hex.publish` invokes

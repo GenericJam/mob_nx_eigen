@@ -1,6 +1,8 @@
 defmodule MobNxEigenTest do
   use ExUnit.Case, async: true
 
+  alias MobDev.Plugin.{Manifest, Merge}
+
   @manifest_path Path.join([__DIR__, "..", "priv", "mob_plugin.exs"])
 
   defp manifest do
@@ -75,11 +77,11 @@ defmodule MobNxEigenTest do
     test "the pinned mob_dev's validator accepts our cpp_archive NIF" do
       # Runs the current mob_dev's cpp_archive checks (module/sources/nm_symbol,
       # nm_symbol == <module>_nif_init) against our actual manifest.
-      assert {:ok, _} = MobDev.Plugin.Manifest.validate(manifest())
+      assert {:ok, _} = Manifest.validate(manifest())
     end
 
     test "mob_dev's static_archives gatherer resolves our manifest into a build spec" do
-      [spec] = MobDev.Plugin.Merge.static_archives([{@plugin_dir, manifest()}])
+      [spec] = Merge.static_archives([{@plugin_dir, manifest()}])
       assert spec.module == :nx_eigen
       assert spec.nm_symbol == "nx_eigen_nif_init"
       assert spec.plugin == :mob_nx_eigen
