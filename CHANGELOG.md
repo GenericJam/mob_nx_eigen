@@ -6,7 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ---
 
-## [Unreleased]
+## [0.1.2] - 2026-10-09
 
 ### Added
 - **On-device self-test** (MOB-418). `MobNxEigen.SelfTest` implements
@@ -17,8 +17,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
   answers. Without the NIF it fails, except on x86 Android when the
   `nx_eigen` OTP library is absent (mob_dev installs it for the arm ABIs
   only): that is a skip naming the ABI. Run it with `mix mob.selftest`
-  from a host app (mob_dev 0.7.17). Dev/test deps now mob 0.9.15 and mob_dev
-  0.7.17; `mob_version` in the manifest is now `~> 0.9`.
+  from a host app (mob_dev 0.7.17).
+
+### Changed
+- Dev/test deps now mob 0.9.15 and mob_dev 0.7.17. mob is still not a runtime
+  dep: on a host with mob < 0.9.15 the plugin works as before, but compiling
+  `MobNxEigen.SelfTest` warns that the behaviour is undefined. `mob_version`
+  in the manifest is now `~> 0.9` (was `~> 0.7`).
 
 ### Changed
 - README: the Android ABI note said an x86_64 build fails the link; since
