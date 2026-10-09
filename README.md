@@ -25,10 +25,12 @@ downloads Eigen in its own Makefile and ships a precompiled `.so`, so a clean
 `mix deps.get` has no Eigen for the source cross-compile to reference. Set
 `EIGEN_DIR` to a local Eigen 3.4.0 checkout to skip the download.
 
-> **Android ABI:** `cpp_archive` targets arm64/arm32 (+ iOS), **not** the
-> `x86_64` Android emulator — build/deploy to an arm device (or drop `x86_64`
-> from your app's `abiFilters` + build.zig). Building x86_64 with this plugin
-> fails the link with an unresolved `nx_eigen_nif_init`.
+> **Android ABI:** since mob_dev 0.7.13 the `cpp_archive` is cross-compiled for
+> the `x86_64` emulator ABI too, so an x86_64 build links. mob_dev (0.7.17)
+> still installs the `nx_eigen` OTP library the NIF loads from only for
+> arm64-v8a / armeabi-v7a (`MobDev.NativeBuild.install_nx_eigen_otp_libs/1`),
+> so on an x86_64 emulator the NIF does not load and `configure/0` falls back
+> to `Nx.BinaryBackend`. Use an arm device or emulator for NxEigen itself.
 
 Requires a mob_dev with `cpp_archive` + the `ANDROID_HOME`-aware NDK resolution
 (≥ the release carrying MOB-89).
@@ -47,7 +49,10 @@ The plugin's `lifecycle.on_start` calls `MobNxEigen.configure/0` at app boot,
 which makes `NxEigen.Backend` the global Nx backend (falling back to
 `Nx.BinaryBackend` if the NIF can't load).
 
+`mix mob.selftest` runs `MobNxEigen.SelfTest` on the device: `Nx.dot/2` and `Nx.fft/1` on `NxEigen.Backend` (a skip on x86 Android without the `nx_eigen` OTP library, see above).
+
 ## Status
 
 Replaces the bespoke `nxeigen` hooks that used to live in mob_dev core
-(`mix mob.enable nxeigen`). Device verification on Android/iOS pending.
+(`mix mob.enable nxeigen`). Verified on an iOS simulator and an arm64 Android
+emulator by the self-test (MOB-418).
