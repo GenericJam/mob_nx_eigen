@@ -47,6 +47,8 @@ The plugin's `lifecycle.on_start` calls `MobNxEigen.configure/0` at app boot,
 which makes `NxEigen.Backend` the global Nx backend (falling back to
 `Nx.BinaryBackend` if the NIF can't load).
 
+`mix mob.selftest` runs `MobNxEigen.SelfTest` on the device: `Nx.dot/2` and `Nx.fft/1` on `NxEigen.Backend` (a skip on x86 Android, where the NIF is not built).
+
 ## Status
 
 Replaces the bespoke `nxeigen` hooks that used to live in mob_dev core

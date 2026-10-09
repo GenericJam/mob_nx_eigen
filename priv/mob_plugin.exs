@@ -1,8 +1,12 @@
 %{
   name: :mob_nx_eigen,
-  mob_version: "~> 0.7",
+  mob_version: "~> 0.9",
   plugin_spec_version: 1,
   description: "Eigen-backed CPU Nx backend (the always-available on-device ML baseline)",
+  # On-device proof for `mix mob.selftest` / mob_ci: Nx.dot/2 and Nx.fft/1 on
+  # NxEigen.Backend; an honest skip on x86 Android, where the archive is not
+  # built (Mob.Plugin.SelfTest).
+  selftest: MobNxEigen.SelfTest,
 
   # The C++ NIF, cross-compiled to libnx_eigen_nif.a and static-linked into the
   # app (MobDev.Plugin.CppArchive). This is the plugin replacement for the

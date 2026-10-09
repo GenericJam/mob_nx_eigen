@@ -6,6 +6,19 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ---
 
+## [Unreleased]
+
+### Added
+- **On-device self-test** (MOB-418). `MobNxEigen.SelfTest` implements
+  `Mob.Plugin.SelfTest` and is declared in the manifest as `selftest:`. It
+  runs `Nx.dot/2` (`[[1, 2], [3, 4]]` squared) and `Nx.fft/1` (the
+  Eigen/kissfft bridge this plugin ships) on `NxEigen.Backend` and checks
+  the answers. Without the NIF it skips on x86 Android (mob_dev builds the
+  archive for the arm ABIs only) and fails anywhere else, where the backend
+  silently fell back to `Nx.BinaryBackend`. Run it with `mix mob.selftest`
+  from a host app (mob_dev 0.7.17). Dev/test deps now mob 0.9.15 and mob_dev
+  0.7.17; `mob_version` in the manifest is now `~> 0.9`.
+
 ## [0.1.1] - 2026-09-30
 
 ### Changed
