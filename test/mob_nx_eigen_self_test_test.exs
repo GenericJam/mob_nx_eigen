@@ -7,10 +7,13 @@ defmodule MobNxEigenSelfTestTest do
 
   @plugin_dir Path.expand("..", __DIR__)
 
-  @good %{
-    dot: {NxEigen.Backend, [7.0, 10.0, 15.0, 22.0]},
-    fft: Enum.map(1..4, fn _ -> Complex.new(1.0, 0.0) end)
-  }
+  @fft [
+    Complex.new(10.0, 0.0),
+    Complex.new(-2.0, 2.0),
+    Complex.new(-2.0, 0.0),
+    Complex.new(-2.0, -2.0)
+  ]
+  @good %{dot: {NxEigen.Backend, [7.0, 10.0, 15.0, 22.0]}, fft: @fft}
 
   defp computes(result), do: fn -> result end
 
@@ -25,18 +28,30 @@ defmodule MobNxEigenSelfTestTest do
 
   test "a loaded NIF whose dot and fft come back right passes" do
     for platform <- [:ios, :android] do
-      assert SelfTest.check(true, platform, "aarch64-unknown-linux-android", computes(@good)) ==
+      assert SelfTest.check(
+               true,
+               platform,
+               "aarch64-unknown-linux-android",
+               true,
+               computes(@good)
+             ) ==
                :pass
     end
   end
 
-  test "x86 Android without the NIF is a skip naming the abi" do
+  test "x86 Android without the nx_eigen OTP library is a skip naming the abi" do
     for arch <- ["x86_64-pc-linux-android", "i686-pc-linux-android"] do
-      result = SelfTest.check(false, :android, arch, refute_called())
+      result = SelfTest.check(false, :android, arch, false, refute_called())
       assert {:skip, "nif not built for this abi (" <> rest} = result
       assert rest =~ arch
       assert Contract.result?(result)
     end
+  end
+
+  test "x86 Android that has the OTP library and still no NIF fails" do
+    result = SelfTest.check(false, :android, "x86_64-pc-linux-android", true, refute_called())
+    assert {:fail, "the nx_eigen NIF is not loaded on x86_64" <> _} = result
+    assert Contract.result?(result)
   end
 
   test "arm Android or iOS without the NIF fails: the backend silently fell back" do
@@ -45,8 +60,9 @@ defmodule MobNxEigenSelfTestTest do
           {:android, "arm-unknown-linux-androideabi"},
           {:ios, "aarch64-apple-ios-simulator"},
           {:ios, "x86_64-apple-ios-simulator"}
-        ] do
-      result = SelfTest.check(false, platform, arch, refute_called())
+        ],
+        otp_lib? <- [true, false] do
+      result = SelfTest.check(false, platform, arch, otp_lib?, refute_called())
       assert {:fail, reason} = result
       assert reason =~ "not loaded on #{arch}"
       assert Contract.result?(result)
@@ -54,15 +70,18 @@ defmodule MobNxEigenSelfTestTest do
   end
 
   test "a wrong product, a tensor that left the backend, or a wrong fft fails" do
+    conj = Enum.map(@fft, &Complex.conjugate/1)
+
     for {computed, expected} <- [
           {%{@good | dot: {NxEigen.Backend, [1.0, 2.0, 3.0, 4.0]}}, "expected [7, 10, 15, 22]"},
           {%{@good | dot: {Nx.BinaryBackend, [7.0, 10.0, 15.0, 22.0]}},
            "Nx.BinaryBackend tensor"},
-          {%{@good | fft: [Complex.new(4.0, 0.0), 0, 0, 0]}, "expected all 1"},
-          {%{@good | fft: [Complex.new(1.0, 1.0), 1, 1, 1]}, "expected all 1"},
-          {%{@good | fft: [1, 1, 1]}, "expected all 1"}
+          # The inverse direction (opposite twiddle sign) gives the conjugate.
+          {%{@good | fft: conj}, "expected [10, -2+2i, -2, -2-2i]"},
+          {%{@good | fft: [10.0, -2.0, -2.0, -2.0]}, "expected [10, -2+2i, -2, -2-2i]"},
+          {%{@good | fft: Enum.take(@fft, 3)}, "expected [10, -2+2i, -2, -2-2i]"}
         ] do
-      result = SelfTest.check(true, :android, "aarch64", computes(computed))
+      result = SelfTest.check(true, :android, "aarch64", true, computes(computed))
       assert {:fail, reason} = result
       assert reason =~ expected
       assert Contract.result?(result)
